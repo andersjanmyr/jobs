@@ -56,19 +56,40 @@ type JobsController struct {
 }
 
 func newJobsController() JobsController {
-	jc := JobsController{}
-	jc.Jobs = []Job{Job{"One"}, Job{"Two"}}
+	jc := JobsController{
+		Jobs: []Job{
+			Job{"One"},
+			Job{"Two"},
+		},
+	}
 	return jc
 }
 
 func (c *JobsController) Index(w http.ResponseWriter, r *http.Request) {
-	json, err := json.MarshalIndent(&c.Jobs, "", "  ")
+	json, err := json.MarshalIndent(c.Jobs, "", "  ")
 	if err != nil {
-		http.Error(w, err.Error(), 500)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 	w.Write(json)
 }
-func (c *JobsController) Create(w http.ResponseWriter, r *http.Request)  {}
+
+func (c *JobsController) Create(w http.ResponseWriter, r *http.Request) {
+	decoder := json.NewDecoder(r.Body)
+	defer r.Body.Close()
+	var job Job
+	err := decoder.Decode(&job)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+	c.Jobs = append(c.Jobs, job)
+	w.WriteHeader(http.StatusCreated)
+	json, err := json.MarshalIndent(job, "", "  ")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+	w.Write(json)
+}
+
 func (c *JobsController) Show(w http.ResponseWriter, r *http.Request)    {}
 func (c *JobsController) Update(w http.ResponseWriter, r *http.Request)  {}
 func (c *JobsController) Destroy(w http.ResponseWriter, r *http.Request) {}
