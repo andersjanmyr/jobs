@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -22,11 +23,11 @@ func main() {
 	jobsController := newJobsController()
 	jobs.HandleFunc("/", jobsController.Index).Methods("GET")
 	jobs.HandleFunc("/", jobsController.Create).Methods("POST")
-	jobs.HandleFunc("/{key}/", jobsController.Show).Methods("GET")
-	jobs.HandleFunc("/{key}/", jobsController.Update).Methods("PUT")
-	jobs.HandleFunc("/{key}/", jobsController.Destroy).Methods("DELETE")
-	jobs.HandleFunc("/{key}/new", jobsController.New).Methods("GET")
-	jobs.HandleFunc("/{key}/edit", jobsController.Edit).Methods("GET")
+	jobs.HandleFunc("/{name}", jobsController.Show).Methods("GET")
+	jobs.HandleFunc("/{name}", jobsController.Update).Methods("PUT")
+	jobs.HandleFunc("/{name}", jobsController.Destroy).Methods("DELETE")
+	jobs.HandleFunc("/{name}/new", jobsController.New).Methods("GET")
+	jobs.HandleFunc("/{name}/edit", jobsController.Edit).Methods("GET")
 
 	log.Print("Server started on port; ", strconv.Itoa(port))
 	log.Fatal(http.ListenAndServe(":"+strconv.Itoa(port), loggedRouter))
@@ -80,17 +81,41 @@ func (c *JobsController) Create(w http.ResponseWriter, r *http.Request) {
 	err := decoder.Decode(&job)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	c.Jobs = append(c.Jobs, job)
-	w.WriteHeader(http.StatusCreated)
 	json, err := json.MarshalIndent(job, "", "  ")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
+	w.WriteHeader(http.StatusCreated)
 	w.Write(json)
 }
 
-func (c *JobsController) Show(w http.ResponseWriter, r *http.Request)    {}
+func (c *JobsController) Show(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	name := vars["name"]
+	log.Println("name", name)
+	fmt.Println("name", name)
+	if name == "" {
+		http.NotFound(w, r)
+		return
+	}
+	for _, j := range c.Jobs {
+		if j.Name == name {
+			json, err := json.MarshalIndent(j, "", "  ")
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			w.Write(json)
+			return
+		}
+		http.NotFound(w, r)
+	}
+
+}
 func (c *JobsController) Update(w http.ResponseWriter, r *http.Request)  {}
 func (c *JobsController) Destroy(w http.ResponseWriter, r *http.Request) {}
 func (c *JobsController) New(w http.ResponseWriter, r *http.Request)     {}
