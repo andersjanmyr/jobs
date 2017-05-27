@@ -2,11 +2,13 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
 	"strconv"
+
+	_ "net/http/pprof"
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
@@ -53,14 +55,14 @@ type RestController interface {
 }
 
 type JobsController struct {
-	Jobs []Job
+	Jobs []*Job
 }
 
 func newJobsController() JobsController {
 	jc := JobsController{
-		Jobs: []Job{
-			Job{"One"},
-			Job{"Two"},
+		Jobs: []*Job{
+			&Job{"One"},
+			&Job{"Two"},
 		},
 	}
 	return jc
@@ -75,10 +77,7 @@ func (c *JobsController) Index(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *JobsController) Create(w http.ResponseWriter, r *http.Request) {
-	decoder := json.NewDecoder(r.Body)
-	defer r.Body.Close()
-	var job Job
-	err := decoder.Decode(&job)
+	job, err := parseJob(r.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -93,30 +92,75 @@ func (c *JobsController) Create(w http.ResponseWriter, r *http.Request) {
 	w.Write(json)
 }
 
+func parseJob(reader io.ReadCloser) (*Job, error) {
+	decoder := json.NewDecoder(reader)
+	defer reader.Close()
+	var job Job
+	if err := decoder.Decode(&job); err != nil {
+		return nil, err
+	}
+	return &job, nil
+}
+
 func (c *JobsController) Show(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	name := vars["name"]
-	log.Println("name", name)
-	fmt.Println("name", name)
+	name := getName(r)
 	if name == "" {
 		http.NotFound(w, r)
 		return
 	}
-	for _, j := range c.Jobs {
-		if j.Name == name {
-			json, err := json.MarshalIndent(j, "", "  ")
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-			w.Write(json)
-			return
-		}
+	j := c.findJob(name)
+	if j == nil {
 		http.NotFound(w, r)
 	}
-
+	json, err := json.MarshalIndent(j, "", "  ")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Write(json)
 }
-func (c *JobsController) Update(w http.ResponseWriter, r *http.Request)  {}
+
+func getName(r *http.Request) string {
+	vars := mux.Vars(r)
+	name := vars["name"]
+	log.Println("name", name)
+	return name
+}
+
+func (c *JobsController) Update(w http.ResponseWriter, r *http.Request) {
+	name := getName(r)
+	if name == "" {
+		http.NotFound(w, r)
+		return
+	}
+	job, err := parseJob(r.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	j := c.findJob(name)
+	if j == nil {
+		c.Jobs = append(c.Jobs, job)
+	} else {
+		// ignore for now
+	}
+	json, err := json.MarshalIndent(job, "", "  ")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Write(json)
+}
+
+func (c *JobsController) findJob(name string) *Job {
+	for _, j := range c.Jobs {
+		if j.Name == name {
+			return j
+		}
+	}
+	return nil
+}
+
 func (c *JobsController) Destroy(w http.ResponseWriter, r *http.Request) {}
 func (c *JobsController) New(w http.ResponseWriter, r *http.Request)     {}
 func (c *JobsController) Edit(w http.ResponseWriter, r *http.Request)    {}
