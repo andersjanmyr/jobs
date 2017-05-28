@@ -129,6 +129,7 @@ func (c *JobsController) Show(w http.ResponseWriter, r *http.Request) {
 	j, _ := c.findJob(slug)
 	if j == nil {
 		http.NotFound(w, r)
+		return
 	}
 	json, err := json.MarshalIndent(j, "", "  ")
 	if err != nil {
