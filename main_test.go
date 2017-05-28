@@ -65,3 +65,27 @@ func TestJobsUpdate(t *testing.T) {
 	}`
 	assert.JSONEq(t, expected, w.Body.String())
 }
+
+func TestJobsDelete(t *testing.T) {
+	req, err := http.NewRequest("DELETE", "/one", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	w := httptest.NewRecorder()
+	router := mux.NewRouter()
+	controller := newJobsController()
+	controller.Jobs = []*Job{newJob("Zero"), newJob("One"), newJob("Two")}
+	setupRouter(router.PathPrefix("/"), controller)
+
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, 200, w.Code)
+	expected := `{
+		"Name": "One",
+		"Slug": "one",
+		"Config": {}
+	}`
+	assert.JSONEq(t, expected, w.Body.String())
+	assert.Equal(t, 2, len(controller.Jobs))
+}

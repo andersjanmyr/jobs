@@ -38,11 +38,6 @@ func main() {
 	log.Fatal(http.ListenAndServe(":"+strconv.Itoa(port), loggedRouter))
 }
 
-func pipeline(w http.ResponseWriter, r *http.Request) {
-	log.Print("Pipeline")
-	w.Write([]byte("pipeline"))
-}
-
 type Config struct {
 }
 
@@ -121,7 +116,7 @@ func (c *JobsController) Show(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	j := c.findJob(slug)
+	j, _ := c.findJob(slug)
 	if j == nil {
 		http.NotFound(w, r)
 	}
@@ -134,10 +129,8 @@ func (c *JobsController) Show(w http.ResponseWriter, r *http.Request) {
 }
 
 func getSlug(r *http.Request) string {
-	log.Printf("%#v\n", r.URL.Path)
 	vars := mux.Vars(r)
 	slug := vars["slug"]
-	log.Println("slug", slug)
 	return slug
 }
 
@@ -152,8 +145,7 @@ func (c *JobsController) Update(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	j := c.findJob(slug)
-	log.Println(slug, j)
+	j, _ := c.findJob(slug)
 	if j == nil {
 		c.Jobs = append(c.Jobs, job)
 	} else {
@@ -170,18 +162,33 @@ func (c *JobsController) Update(w http.ResponseWriter, r *http.Request) {
 	w.Write(json)
 }
 
-func (c *JobsController) findJob(slug string) *Job {
-	for _, j := range c.Jobs {
+func (c *JobsController) findJob(slug string) (*Job, int) {
+	for i, j := range c.Jobs {
 		if j.Slug == slug {
-			return j
+			return j, i
 		}
 	}
-	return nil
+	return nil, -1
 }
 
-func (c *JobsController) Destroy(w http.ResponseWriter, r *http.Request) {}
-func (c *JobsController) New(w http.ResponseWriter, r *http.Request)     {}
-func (c *JobsController) Edit(w http.ResponseWriter, r *http.Request)    {}
-
-func JobsHandler(w http.ResponseWriter, r *http.Request) {
+func (c *JobsController) Destroy(w http.ResponseWriter, r *http.Request) {
+	slug := getSlug(r)
+	if slug == "" {
+		http.NotFound(w, r)
+		return
+	}
+	j, i := c.findJob(slug)
+	if j == nil {
+		http.NotFound(w, r)
+		return
+	}
+	c.Jobs = append(c.Jobs[:i], c.Jobs[i+1:]...)
+	json, err := json.MarshalIndent(j, "", "  ")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Write(json)
 }
+func (c *JobsController) New(w http.ResponseWriter, r *http.Request)  {}
+func (c *JobsController) Edit(w http.ResponseWriter, r *http.Request) {}
