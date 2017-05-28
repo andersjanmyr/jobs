@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -48,8 +49,11 @@ type Job struct {
 }
 
 func newJob(name string) *Job {
-	slug := strings.ToLower(name)
-	return &Job{name, slug, Config{}}
+	return &Job{name, slug(name), Config{}}
+}
+
+func slug(name string) string {
+	return strings.ToLower(name)
 }
 
 type RestController interface {
@@ -101,11 +105,17 @@ func (c *JobsController) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func parseJob(reader io.ReadCloser) (*Job, error) {
+	if reader == nil {
+		return nil, fmt.Errorf("No body to parse")
+	}
 	decoder := json.NewDecoder(reader)
 	defer reader.Close()
 	var job Job
 	if err := decoder.Decode(&job); err != nil {
 		return nil, err
+	}
+	if job.Slug == "" {
+		job.Slug = slug(job.Name)
 	}
 	return &job, nil
 }

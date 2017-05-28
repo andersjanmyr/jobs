@@ -39,6 +39,54 @@ func TestJobsIndex(t *testing.T) {
 	assert.JSONEq(t, expected, w.Body.String())
 }
 
+func TestJobsCreate(t *testing.T) {
+	job := strings.NewReader(`{
+		"Name": "Three"
+	}`)
+
+	req, err := http.NewRequest("POST", "/", job)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	w := httptest.NewRecorder()
+	router := mux.NewRouter()
+	controller := newJobsController()
+	setupRouter(router.PathPrefix("/"), controller)
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, 201, w.Code)
+	expected := `{
+		"Name": "Three",
+		"Slug": "three",
+		"Config": {}
+	}`
+	assert.JSONEq(t, expected, w.Body.String())
+}
+
+func TestJobsShow(t *testing.T) {
+	req, err := http.NewRequest("GET", "/one", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	w := httptest.NewRecorder()
+	router := mux.NewRouter()
+	controller := newJobsController()
+	controller.Jobs = []*Job{newJob("Zero"), newJob("One"), newJob("Two")}
+	setupRouter(router.PathPrefix("/"), controller)
+
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, 200, w.Code)
+	expected := `{
+		"Name": "One",
+		"Slug": "one",
+		"Config": {}
+	}`
+	assert.JSONEq(t, expected, w.Body.String())
+}
+
 func TestJobsUpdate(t *testing.T) {
 	job := strings.NewReader(`{
 		"Name": "Uno"
