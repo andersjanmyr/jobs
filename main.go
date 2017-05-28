@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 
 	_ "net/http/pprof"
 
@@ -14,22 +15,24 @@ import (
 	"github.com/gorilla/mux"
 )
 
+func setupRouter(router *mux.Route, controller RestController) *mux.Router {
+	var subRouter = router.Subrouter()
+	subRouter.HandleFunc("/", controller.Index).Methods("GET")
+	subRouter.HandleFunc("/", controller.Create).Methods("POST")
+	subRouter.HandleFunc("/{slug}", controller.Show).Methods("GET")
+	subRouter.HandleFunc("/{slug}", controller.Update).Methods("PUT")
+	subRouter.HandleFunc("/{slug}", controller.Destroy).Methods("DELETE")
+	subRouter.HandleFunc("/{slug}/new", controller.New).Methods("GET")
+	subRouter.HandleFunc("/{slug}/edit", controller.Edit).Methods("GET")
+	return subRouter
+}
+
 func main() {
 	port := 5555
 
-	r := mux.NewRouter()
-	r.HandleFunc("/", pipeline)
-	loggedRouter := handlers.LoggingHandler(os.Stdout, r)
-
-	jobs := r.PathPrefix("/jobs").Subrouter()
-	jobsController := newJobsController()
-	jobs.HandleFunc("/", jobsController.Index).Methods("GET")
-	jobs.HandleFunc("/", jobsController.Create).Methods("POST")
-	jobs.HandleFunc("/{name}", jobsController.Show).Methods("GET")
-	jobs.HandleFunc("/{name}", jobsController.Update).Methods("PUT")
-	jobs.HandleFunc("/{name}", jobsController.Destroy).Methods("DELETE")
-	jobs.HandleFunc("/{name}/new", jobsController.New).Methods("GET")
-	jobs.HandleFunc("/{name}/edit", jobsController.Edit).Methods("GET")
+	var router = mux.NewRouter()
+	loggedRouter := handlers.LoggingHandler(os.Stdout, router)
+	setupRouter(router.PathPrefix("/jobs"), newJobsController())
 
 	log.Print("Server started on port; ", strconv.Itoa(port))
 	log.Fatal(http.ListenAndServe(":"+strconv.Itoa(port), loggedRouter))
@@ -40,8 +43,18 @@ func pipeline(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("pipeline"))
 }
 
+type Config struct {
+}
+
 type Job struct {
-	Name string
+	Name   string
+	Slug   string
+	Config Config
+}
+
+func newJob(name string) *Job {
+	slug := strings.ToLower(name)
+	return &Job{name, slug, Config{}}
 }
 
 type RestController interface {
@@ -58,14 +71,14 @@ type JobsController struct {
 	Jobs []*Job
 }
 
-func newJobsController() JobsController {
+func newJobsController() *JobsController {
 	jc := JobsController{
 		Jobs: []*Job{
-			&Job{"One"},
-			&Job{"Two"},
+			newJob("One"),
+			newJob("Two"),
 		},
 	}
-	return jc
+	return &jc
 }
 
 func (c *JobsController) Index(w http.ResponseWriter, r *http.Request) {
@@ -103,12 +116,12 @@ func parseJob(reader io.ReadCloser) (*Job, error) {
 }
 
 func (c *JobsController) Show(w http.ResponseWriter, r *http.Request) {
-	name := getName(r)
-	if name == "" {
+	slug := getSlug(r)
+	if slug == "" {
 		http.NotFound(w, r)
 		return
 	}
-	j := c.findJob(name)
+	j := c.findJob(slug)
 	if j == nil {
 		http.NotFound(w, r)
 	}
@@ -120,16 +133,17 @@ func (c *JobsController) Show(w http.ResponseWriter, r *http.Request) {
 	w.Write(json)
 }
 
-func getName(r *http.Request) string {
+func getSlug(r *http.Request) string {
+	log.Printf("%#v\n", r.URL.Path)
 	vars := mux.Vars(r)
-	name := vars["name"]
-	log.Println("name", name)
-	return name
+	slug := vars["slug"]
+	log.Println("slug", slug)
+	return slug
 }
 
 func (c *JobsController) Update(w http.ResponseWriter, r *http.Request) {
-	name := getName(r)
-	if name == "" {
+	slug := getSlug(r)
+	if slug == "" {
 		http.NotFound(w, r)
 		return
 	}
@@ -138,7 +152,8 @@ func (c *JobsController) Update(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	j := c.findJob(name)
+	j := c.findJob(slug)
+	log.Println(slug, j)
 	if j == nil {
 		c.Jobs = append(c.Jobs, job)
 	} else {
@@ -152,9 +167,9 @@ func (c *JobsController) Update(w http.ResponseWriter, r *http.Request) {
 	w.Write(json)
 }
 
-func (c *JobsController) findJob(name string) *Job {
+func (c *JobsController) findJob(slug string) *Job {
 	for _, j := range c.Jobs {
-		if j.Name == name {
+		if j.Slug == slug {
 			return j
 		}
 	}

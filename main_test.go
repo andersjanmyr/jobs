@@ -1,31 +1,67 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
+
+	"github.com/gorilla/mux"
+	"github.com/stretchr/testify/assert"
 )
 
-func TestPipeline(t *testing.T) {
-	req, err := http.NewRequest("GET", "http://example.com/Pipeline", nil)
+func TestJobsIndex(t *testing.T) {
+	req, err := http.NewRequest("GET", "/", nil)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	w := httptest.NewRecorder()
-	pipeline(w, req)
+	router := mux.NewRouter()
+	controller := newJobsController()
+	setupRouter(router.PathPrefix("/"), controller)
+	router.ServeHTTP(w, req)
 
-	fmt.Printf("%d - %s", w.Code, w.Body.String())
-	actualCode := w.Code
-	expectedCode := 200
-	if actualCode != expectedCode {
-		t.Errorf("w.Code: %v, expected %v", actualCode, expectedCode)
+	assert.Equal(t, 200, w.Code)
+	expected := `[
+		  {
+		    "Name": "One",
+		    "Slug": "one",
+		    "Config": {}
+		  },
+		  {
+		    "Name": "Two",
+		    "Slug": "two",
+		    "Config": {}
+		  }
+		]`
+	assert.JSONEq(t, expected, w.Body.String())
+}
+
+func TestJobsUpdate(t *testing.T) {
+	job := strings.NewReader(`{
+		"Name": "Uno"
+	}`)
+
+	req, err := http.NewRequest("PUT", "/one", job)
+	if err != nil {
+		log.Fatal(err)
 	}
-	actualBody := w.Body.String()
-	expectedBody := "pipeline"
-	if actualBody != expectedBody {
-		t.Errorf("w.Body: %v, expected %v", actualBody, expectedBody)
-	}
+
+	w := httptest.NewRecorder()
+	router := mux.NewRouter()
+	controller := newJobsController()
+	controller.Jobs = []*Job{newJob("one")}
+	setupRouter(router.PathPrefix("/"), controller)
+
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, 200, w.Code)
+	expected := `{
+		"Name": "Uno",
+		"Slug": "one",
+		"Config": {}
+	}`
+	assert.JSONEq(t, expected, w.Body.String())
 }
