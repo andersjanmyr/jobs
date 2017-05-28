@@ -31,6 +31,7 @@ func setupRouter(router *mux.Route, controller RestController) *mux.Router {
 func main() {
 	port := 5555
 
+	log.SetOutput(os.Stdout)
 	var router = mux.NewRouter()
 	loggedRouter := handlers.LoggingHandler(os.Stdout, router)
 	setupRouter(router.PathPrefix("/jobs"), newJobsController())
