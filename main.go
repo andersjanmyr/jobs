@@ -33,7 +33,7 @@ func main() {
 
 	log.SetOutput(os.Stdout)
 	var router = mux.NewRouter()
-	loggedRouter := handlers.LoggingHandler(os.Stdout, router)
+	loggedRouter := handlers.LoggingHandler(os.Stdout, slowMiddleware(router))
 	setupRouter(router.PathPrefix("/jobs"), newJobsController())
 
 	go func() {
@@ -42,6 +42,15 @@ func main() {
 	}()
 	log.Print("Server started on port ", strconv.Itoa(port))
 	log.Fatal(http.ListenAndServe(":"+strconv.Itoa(port), loggedRouter))
+}
+
+func slowMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		for i := 0; i < 10000; i++ {
+			fmt.Fprint(os.Stderr, i)
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 type Config struct {
