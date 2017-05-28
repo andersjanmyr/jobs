@@ -157,9 +157,12 @@ func (c *JobsController) Update(w http.ResponseWriter, r *http.Request) {
 	if j == nil {
 		c.Jobs = append(c.Jobs, job)
 	} else {
-		// ignore for now
+		if job.Name != "" {
+			j.Name = job.Name
+		}
+		j.Config = job.Config
 	}
-	json, err := json.MarshalIndent(job, "", "  ")
+	json, err := json.MarshalIndent(j, "", "  ")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
