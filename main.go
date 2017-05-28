@@ -35,7 +35,11 @@ func main() {
 	loggedRouter := handlers.LoggingHandler(os.Stdout, router)
 	setupRouter(router.PathPrefix("/jobs"), newJobsController())
 
-	log.Print("Server started on port; ", strconv.Itoa(port))
+	go func() {
+		log.Print("Profile server started on port 6060")
+		log.Fatal(http.ListenAndServe("127.0.0.1:6060", nil))
+	}()
+	log.Print("Server started on port ", strconv.Itoa(port))
 	log.Fatal(http.ListenAndServe(":"+strconv.Itoa(port), loggedRouter))
 }
 
