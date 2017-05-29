@@ -75,13 +75,20 @@ func NewJobController(repo *JobRepo) *JobController {
 }
 
 func (c *JobController) Index(w http.ResponseWriter, r *http.Request) {
-	json, err := json.MarshalIndent(c.repo.Find(), "", "  ")
+	writeJson(w, c.repo.Find())
+}
+
+func writeJson(w http.ResponseWriter, data interface{}) {
+	json, err := json.MarshalIndent(data, "", "  ")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
+	w.Header().Set("Content-Type", "application/json")
 	_, err = w.Write(json)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 }
 
@@ -91,16 +98,8 @@ func (c *JobController) Create(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	json, err := json.MarshalIndent(job, "", "  ")
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
 	w.WriteHeader(http.StatusCreated)
-	_, err = w.Write(json)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
+	writeJson(w, job)
 }
 
 func parseJob(reader io.ReadCloser) (*Job, error) {
@@ -130,15 +129,7 @@ func (c *JobController) Show(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	json, err := json.MarshalIndent(j, "", "  ")
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	_, err = w.Write(json)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
+	writeJson(w, j)
 }
 
 func getSlug(r *http.Request) string {
@@ -160,15 +151,7 @@ func (c *JobController) Update(w http.ResponseWriter, r *http.Request) {
 	}
 	job.Slug = slug
 	j := c.repo.UpAdd(job)
-	json, err := json.MarshalIndent(j, "", "  ")
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	_, err = w.Write(json)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
+	writeJson(w, j)
 }
 
 func (c *JobController) Destroy(w http.ResponseWriter, r *http.Request) {
@@ -182,15 +165,7 @@ func (c *JobController) Destroy(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	json, err := json.MarshalIndent(j, "", "  ")
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	_, err = w.Write(json)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
+	writeJson(w, j)
 }
 func (c *JobController) New(w http.ResponseWriter, r *http.Request)  {}
 func (c *JobController) Edit(w http.ResponseWriter, r *http.Request) {}
