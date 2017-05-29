@@ -57,12 +57,13 @@ func (r *JobRepo) Add(job *Job) *Job {
 	return job
 }
 
-func (r *JobRepo) Update(job *Job) error {
+func (r *JobRepo) Update(job *Job) (*Job, error) {
 	j, _ := r.FindOne(job.Slug)
 	if j == nil {
-		return fmt.Errorf("Cannot find job with slug %s", job.Slug)
+		return nil, fmt.Errorf("Cannot find job with slug %s", job.Slug)
 	}
-	return nil
+	j.update(job)
+	return job, nil
 }
 
 func (r *JobRepo) UpAdd(job *Job) *Job {
