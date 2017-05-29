@@ -19,7 +19,7 @@ func main() {
 	port := 5555
 
 	log.SetOutput(os.Stdout)
-	var router = mux.NewRouter()
+	var router = mux.NewRouter().StrictSlash(true)
 	loggedRouter := handlers.LoggingHandler(os.Stdout, slowMiddleware(router))
 	jobRepo := NewJobRepo([]*Job{NewJob("One"), NewJob("Two")})
 	setupRouter(router.PathPrefix("/jobs"), NewJobController(jobRepo))
