@@ -19,7 +19,8 @@ func TestJobsIndex(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	router := mux.NewRouter()
-	controller := newJobsController()
+	jobRepo := NewJobRepo([]*Job{NewJob("One"), NewJob("Two")})
+	controller := NewJobController(jobRepo)
 	setupRouter(router.PathPrefix("/"), controller)
 	router.ServeHTTP(w, req)
 
@@ -51,7 +52,7 @@ func TestJobsCreate(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	router := mux.NewRouter()
-	controller := newJobsController()
+	controller := NewJobController(NewJobRepo([]*Job{}))
 	setupRouter(router.PathPrefix("/"), controller)
 	router.ServeHTTP(w, req)
 
@@ -72,8 +73,8 @@ func TestJobsShow(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	router := mux.NewRouter()
-	controller := newJobsController()
-	controller.Jobs = []*Job{newJob("Zero"), newJob("One"), newJob("Two")}
+	jobRepo := NewJobRepo([]*Job{NewJob("Zero"), NewJob("One"), NewJob("Two")})
+	controller := NewJobController(jobRepo)
 	setupRouter(router.PathPrefix("/"), controller)
 
 	router.ServeHTTP(w, req)
@@ -99,8 +100,8 @@ func TestJobsUpdate(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	router := mux.NewRouter()
-	controller := newJobsController()
-	controller.Jobs = []*Job{newJob("one")}
+	jobRepo := NewJobRepo([]*Job{NewJob("One"), NewJob("Two")})
+	controller := NewJobController(jobRepo)
 	setupRouter(router.PathPrefix("/"), controller)
 
 	router.ServeHTTP(w, req)
@@ -122,8 +123,8 @@ func TestJobsDelete(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	router := mux.NewRouter()
-	controller := newJobsController()
-	controller.Jobs = []*Job{newJob("Zero"), newJob("One"), newJob("Two")}
+	jobRepo := NewJobRepo([]*Job{NewJob("Zero"), NewJob("One"), NewJob("Two")})
+	controller := NewJobController(jobRepo)
 	setupRouter(router.PathPrefix("/"), controller)
 
 	router.ServeHTTP(w, req)
@@ -135,5 +136,5 @@ func TestJobsDelete(t *testing.T) {
 		"Config": {}
 	}`
 	assert.JSONEq(t, expected, w.Body.String())
-	assert.Equal(t, 2, len(controller.Jobs))
+	assert.Equal(t, 2, len(jobRepo.Find()))
 }

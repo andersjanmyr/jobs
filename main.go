@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"os"
 	"strconv"
-	"strings"
 
 	_ "net/http/pprof"
 
@@ -34,7 +33,8 @@ func main() {
 	log.SetOutput(os.Stdout)
 	var router = mux.NewRouter()
 	loggedRouter := handlers.LoggingHandler(os.Stdout, slowMiddleware(router))
-	setupRouter(router.PathPrefix("/jobs"), newJobsController())
+	jobRepo := NewJobRepo([]*Job{NewJob("One"), NewJob("Two")})
+	setupRouter(router.PathPrefix("/jobs"), NewJobController(jobRepo))
 
 	go func() {
 		log.Print("Profile server started on port 6060")
@@ -53,23 +53,6 @@ func slowMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-type Config struct {
-}
-
-type Job struct {
-	Name   string
-	Slug   string
-	Config Config
-}
-
-func newJob(name string) *Job {
-	return &Job{name, slug(name), Config{}}
-}
-
-func slug(name string) string {
-	return strings.ToLower(name)
-}
-
 type RestController interface {
 	Index(w http.ResponseWriter, r *http.Request)
 	Create(w http.ResponseWriter, r *http.Request)
@@ -80,42 +63,44 @@ type RestController interface {
 	Edit(w http.ResponseWriter, r *http.Request)
 }
 
-type JobsController struct {
-	Jobs []*Job
+type JobController struct {
+	repo *JobRepo
 }
 
-func newJobsController() *JobsController {
-	jc := JobsController{
-		Jobs: []*Job{
-			newJob("One"),
-			newJob("Two"),
-		},
+func NewJobController(repo *JobRepo) *JobController {
+	jc := JobController{
+		repo: repo,
 	}
 	return &jc
 }
 
-func (c *JobsController) Index(w http.ResponseWriter, r *http.Request) {
-	json, err := json.MarshalIndent(c.Jobs, "", "  ")
+func (c *JobController) Index(w http.ResponseWriter, r *http.Request) {
+	json, err := json.MarshalIndent(c.repo.Find(), "", "  ")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
-	w.Write(json)
+	_, err = w.Write(json)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }
 
-func (c *JobsController) Create(w http.ResponseWriter, r *http.Request) {
+func (c *JobController) Create(w http.ResponseWriter, r *http.Request) {
 	job, err := parseJob(r.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	c.Jobs = append(c.Jobs, job)
 	json, err := json.MarshalIndent(job, "", "  ")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	w.WriteHeader(http.StatusCreated)
-	w.Write(json)
+	_, err = w.Write(json)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }
 
 func parseJob(reader io.ReadCloser) (*Job, error) {
@@ -134,13 +119,13 @@ func parseJob(reader io.ReadCloser) (*Job, error) {
 	return &job, nil
 }
 
-func (c *JobsController) Show(w http.ResponseWriter, r *http.Request) {
+func (c *JobController) Show(w http.ResponseWriter, r *http.Request) {
 	slug := getSlug(r)
 	if slug == "" {
 		http.NotFound(w, r)
 		return
 	}
-	j, _ := c.findJob(slug)
+	j, _ := c.repo.FindOne(slug)
 	if j == nil {
 		http.NotFound(w, r)
 		return
@@ -150,7 +135,10 @@ func (c *JobsController) Show(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	w.Write(json)
+	_, err = w.Write(json)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }
 
 func getSlug(r *http.Request) string {
@@ -159,7 +147,7 @@ func getSlug(r *http.Request) string {
 	return slug
 }
 
-func (c *JobsController) Update(w http.ResponseWriter, r *http.Request) {
+func (c *JobController) Update(w http.ResponseWriter, r *http.Request) {
 	slug := getSlug(r)
 	if slug == "" {
 		http.NotFound(w, r)
@@ -170,50 +158,39 @@ func (c *JobsController) Update(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	j, _ := c.findJob(slug)
-	if j == nil {
-		c.Jobs = append(c.Jobs, job)
-	} else {
-		if job.Name != "" {
-			j.Name = job.Name
-		}
-		j.Config = job.Config
-	}
+	job.Slug = slug
+	j := c.repo.UpAdd(job)
 	json, err := json.MarshalIndent(j, "", "  ")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	w.Write(json)
-}
-
-func (c *JobsController) findJob(slug string) (*Job, int) {
-	for i, j := range c.Jobs {
-		if j.Slug == slug {
-			return j, i
-		}
+	_, err = w.Write(json)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
-	return nil, -1
 }
 
-func (c *JobsController) Destroy(w http.ResponseWriter, r *http.Request) {
+func (c *JobController) Destroy(w http.ResponseWriter, r *http.Request) {
 	slug := getSlug(r)
 	if slug == "" {
 		http.NotFound(w, r)
 		return
 	}
-	j, i := c.findJob(slug)
-	if j == nil {
+	j, err := c.repo.Delete(slug)
+	if err != nil {
 		http.NotFound(w, r)
 		return
 	}
-	c.Jobs = append(c.Jobs[:i], c.Jobs[i+1:]...)
 	json, err := json.MarshalIndent(j, "", "  ")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	w.Write(json)
+	_, err = w.Write(json)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }
-func (c *JobsController) New(w http.ResponseWriter, r *http.Request)  {}
-func (c *JobsController) Edit(w http.ResponseWriter, r *http.Request) {}
+func (c *JobController) New(w http.ResponseWriter, r *http.Request)  {}
+func (c *JobController) Edit(w http.ResponseWriter, r *http.Request) {}
