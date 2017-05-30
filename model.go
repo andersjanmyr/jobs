@@ -3,15 +3,18 @@ package main
 import (
 	"fmt"
 	"strings"
+
+	"github.com/jinzhu/gorm"
 )
 
 type Job struct {
+	gorm.Model
 	Name string
 	Slug string
 }
 
 func NewJob(name string) *Job {
-	return &Job{name, slug(name)}
+	return &Job{Name: name, Slug: slug(name)}
 }
 
 func slug(name string) string {

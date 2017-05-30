@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -10,6 +11,18 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
 )
+
+func jsonToMap(w *httptest.ResponseRecorder) map[string]interface{} {
+	var m map[string]interface{}
+	json.Unmarshal(w.Body.Bytes(), &m)
+	return m
+}
+
+func jsonToSlice(w *httptest.ResponseRecorder) []map[string]interface{} {
+	var s []map[string]interface{}
+	json.Unmarshal(w.Body.Bytes(), &s)
+	return s
+}
 
 func TestJobsIndex(t *testing.T) {
 	req, err := http.NewRequest("GET", "/", nil)
@@ -25,17 +38,8 @@ func TestJobsIndex(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, 200, w.Code)
-	expected := `[
-		  {
-		    "Name": "One",
-		    "Slug": "one"
-		  },
-		  {
-		    "Name": "Two",
-		    "Slug": "two"
-		  }
-		]`
-	assert.JSONEq(t, expected, w.Body.String())
+	s := jsonToSlice(w)
+	assert.Equal(t, 2, len(s))
 }
 
 func TestJobsCreate(t *testing.T) {
@@ -55,11 +59,9 @@ func TestJobsCreate(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, 201, w.Code)
-	expected := `{
-		"Name": "Three",
-		"Slug": "three"
-	}`
-	assert.JSONEq(t, expected, w.Body.String())
+	m := jsonToMap(w)
+	assert.Equal(t, "Three", m["Name"])
+	assert.Equal(t, "three", m["Slug"])
 }
 
 func TestJobsShow(t *testing.T) {
@@ -77,11 +79,9 @@ func TestJobsShow(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, 200, w.Code)
-	expected := `{
-		"Name": "One",
-		"Slug": "one"
-	}`
-	assert.JSONEq(t, expected, w.Body.String())
+	m := jsonToMap(w)
+	assert.Equal(t, "One", m["Name"])
+	assert.Equal(t, "one", m["Slug"])
 }
 
 func TestJobsUpdate(t *testing.T) {
@@ -103,11 +103,8 @@ func TestJobsUpdate(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, 200, w.Code)
-	expected := `{
-		"Name": "Uno",
-		"Slug": "one"
-	}`
-	assert.JSONEq(t, expected, w.Body.String())
+	m := jsonToMap(w)
+	assert.Equal(t, "Uno", m["Name"])
 }
 
 func TestJobsDelete(t *testing.T) {
@@ -125,10 +122,7 @@ func TestJobsDelete(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, 200, w.Code)
-	expected := `{
-		"Name": "One",
-		"Slug": "one"
-	}`
-	assert.JSONEq(t, expected, w.Body.String())
+	m := jsonToMap(w)
+	assert.Equal(t, "One", m["Name"])
 	assert.Equal(t, 2, len(jobRepo.Find()))
 }
