@@ -28,13 +28,11 @@ func TestJobsIndex(t *testing.T) {
 	expected := `[
 		  {
 		    "Name": "One",
-		    "Slug": "one",
-		    "Config": {}
+		    "Slug": "one"
 		  },
 		  {
 		    "Name": "Two",
-		    "Slug": "two",
-		    "Config": {}
+		    "Slug": "two"
 		  }
 		]`
 	assert.JSONEq(t, expected, w.Body.String())
@@ -59,8 +57,7 @@ func TestJobsCreate(t *testing.T) {
 	assert.Equal(t, 201, w.Code)
 	expected := `{
 		"Name": "Three",
-		"Slug": "three",
-		"Config": {}
+		"Slug": "three"
 	}`
 	assert.JSONEq(t, expected, w.Body.String())
 }
@@ -82,8 +79,7 @@ func TestJobsShow(t *testing.T) {
 	assert.Equal(t, 200, w.Code)
 	expected := `{
 		"Name": "One",
-		"Slug": "one",
-		"Config": {}
+		"Slug": "one"
 	}`
 	assert.JSONEq(t, expected, w.Body.String())
 }
@@ -109,8 +105,7 @@ func TestJobsUpdate(t *testing.T) {
 	assert.Equal(t, 200, w.Code)
 	expected := `{
 		"Name": "Uno",
-		"Slug": "one",
-		"Config": {}
+		"Slug": "one"
 	}`
 	assert.JSONEq(t, expected, w.Body.String())
 }
@@ -132,8 +127,7 @@ func TestJobsDelete(t *testing.T) {
 	assert.Equal(t, 200, w.Code)
 	expected := `{
 		"Name": "One",
-		"Slug": "one",
-		"Config": {}
+		"Slug": "one"
 	}`
 	assert.JSONEq(t, expected, w.Body.String())
 	assert.Equal(t, 2, len(jobRepo.Find()))

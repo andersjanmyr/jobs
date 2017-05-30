@@ -5,17 +5,13 @@ import (
 	"strings"
 )
 
-type Config struct {
-}
-
 type Job struct {
-	Name   string
-	Slug   string
-	Config Config
+	Name string
+	Slug string
 }
 
 func NewJob(name string) *Job {
-	return &Job{name, slug(name), Config{}}
+	return &Job{name, slug(name)}
 }
 
 func slug(name string) string {
@@ -26,7 +22,6 @@ func (j *Job) update(job *Job) {
 	if job.Name != "" {
 		j.Name = job.Name
 	}
-	j.Config = job.Config
 }
 
 type JobRepo struct {
