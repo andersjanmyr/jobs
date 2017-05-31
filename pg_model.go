@@ -47,7 +47,12 @@ func (r *PgJobRepo) Update(job *Job) (*Job, error) {
 }
 
 func (r *PgJobRepo) UpAdd(job *Job) (*Job, error) {
-	return nil, nil
+	existingJob, err := r.FindOne(job.Slug)
+	if err != nil {
+		return r.Add(job)
+	}
+	return r.Update(existingJob)
+
 }
 
 func (r *PgJobRepo) Delete(slug string) (*Job, error) {

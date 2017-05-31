@@ -49,6 +49,16 @@ func TestPgJobsUpdate(t *testing.T) {
 	assert.True(t, updatedJob.UpdatedAt.After(job.UpdatedAt), "Expected '%v' to be after '%v'", updatedJob.UpdatedAt, job.UpdatedAt)
 }
 
+func TestPgJobsUpAdd(t *testing.T) {
+	tx := db.Begin()
+	defer tx.Rollback()
+	jobRepo := NewPgJobRepo(tx)
+	job := NewJob("Dingo")
+	job, err := jobRepo.UpAdd(job)
+	assert.Nil(t, err)
+	assert.NotNil(t, job)
+}
+
 func TestPgJobsFindOne(t *testing.T) {
 	tx := db.Begin()
 	defer tx.Rollback()
