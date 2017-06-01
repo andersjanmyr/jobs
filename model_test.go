@@ -16,7 +16,8 @@ func TestFindOne(t *testing.T) {
 	jobRepo := NewMemJobRepo([]*Job{NewJob("One"), NewJob("Two")})
 	job, err := jobRepo.FindOne("one")
 	assert.Nil(t, err)
-	assert.Equal(t, NewJob("One"), job)
+	assert.Equal(t, "One", job.Name)
+	assert.Equal(t, "one", job.Slug)
 }
 
 func TestFindOneMissing(t *testing.T) {
@@ -29,7 +30,10 @@ func TestFindOneMissing(t *testing.T) {
 func TestAdd(t *testing.T) {
 	jobRepo := NewMemJobRepo([]*Job{NewJob("One"), NewJob("Two")})
 	job := NewJob("One")
-	_, _ = jobRepo.Add(job)
+	j, _ := jobRepo.Add(job)
+	assert.NotZero(t, j.ID)
+	assert.NotZero(t, j.CreatedAt)
+	assert.NotZero(t, j.UpdatedAt)
 	jobs, _ := jobRepo.Find()
 	assert.Equal(t, 3, len(jobs))
 }

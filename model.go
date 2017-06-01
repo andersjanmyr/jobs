@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/jinzhu/gorm"
 )
@@ -12,6 +13,8 @@ type Job struct {
 	Name string
 	Slug string
 }
+
+var jobIndex uint = 0
 
 func NewJob(name string) *Job {
 	return &Job{Name: name, Slug: slug(name)}
@@ -41,9 +44,13 @@ type MemJobRepo struct {
 }
 
 func NewMemJobRepo(jobs []*Job) *MemJobRepo {
-	return &MemJobRepo{
-		jobs: jobs,
+	r := &MemJobRepo{
+		jobs: []*Job{},
 	}
+	for _, j := range jobs {
+		_, _ = r.Add(j)
+	}
+	return r
 }
 
 func (r *MemJobRepo) Find() ([]*Job, error) {
@@ -60,6 +67,11 @@ func (r *MemJobRepo) FindOne(slug string) (*Job, error) {
 }
 
 func (r *MemJobRepo) Add(job *Job) (*Job, error) {
+	jobIndex++
+	now := time.Now()
+	job.CreatedAt = now
+	job.UpdatedAt = now
+	job.ID = jobIndex
 	r.jobs = append(r.jobs, job)
 	return job, nil
 }
