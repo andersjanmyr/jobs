@@ -14,13 +14,13 @@ import (
 
 func jsonToMap(w *httptest.ResponseRecorder) map[string]interface{} {
 	var m map[string]interface{}
-	json.Unmarshal(w.Body.Bytes(), &m)
+	_ = json.Unmarshal(w.Body.Bytes(), &m)
 	return m
 }
 
 func jsonToSlice(w *httptest.ResponseRecorder) []map[string]interface{} {
 	var s []map[string]interface{}
-	json.Unmarshal(w.Body.Bytes(), &s)
+	_ = json.Unmarshal(w.Body.Bytes(), &s)
 	return s
 }
 
@@ -32,7 +32,7 @@ func TestJobsIndex(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	router := mux.NewRouter()
-	jobRepo := NewJobRepo([]*Job{NewJob("One"), NewJob("Two")})
+	jobRepo := NewMemJobRepo([]*Job{NewJob("One"), NewJob("Two")})
 	controller := NewJobController(jobRepo)
 	setupRouter(router.PathPrefix("/"), controller)
 	router.ServeHTTP(w, req)
@@ -54,7 +54,7 @@ func TestJobsCreate(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	router := mux.NewRouter()
-	controller := NewJobController(NewJobRepo([]*Job{}))
+	controller := NewJobController(NewMemJobRepo([]*Job{}))
 	setupRouter(router.PathPrefix("/"), controller)
 	router.ServeHTTP(w, req)
 
@@ -72,7 +72,7 @@ func TestJobsShow(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	router := mux.NewRouter()
-	jobRepo := NewJobRepo([]*Job{NewJob("Zero"), NewJob("One"), NewJob("Two")})
+	jobRepo := NewMemJobRepo([]*Job{NewJob("Zero"), NewJob("One"), NewJob("Two")})
 	controller := NewJobController(jobRepo)
 	setupRouter(router.PathPrefix("/"), controller)
 
@@ -96,7 +96,7 @@ func TestJobsUpdate(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	router := mux.NewRouter()
-	jobRepo := NewJobRepo([]*Job{NewJob("One"), NewJob("Two")})
+	jobRepo := NewMemJobRepo([]*Job{NewJob("One"), NewJob("Two")})
 	controller := NewJobController(jobRepo)
 	setupRouter(router.PathPrefix("/"), controller)
 
@@ -115,7 +115,7 @@ func TestJobsDelete(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	router := mux.NewRouter()
-	jobRepo := NewJobRepo([]*Job{NewJob("Zero"), NewJob("One"), NewJob("Two")})
+	jobRepo := NewMemJobRepo([]*Job{NewJob("Zero"), NewJob("One"), NewJob("Two")})
 	controller := NewJobController(jobRepo)
 	setupRouter(router.PathPrefix("/"), controller)
 
@@ -124,5 +124,6 @@ func TestJobsDelete(t *testing.T) {
 	assert.Equal(t, 200, w.Code)
 	m := jsonToMap(w)
 	assert.Equal(t, "One", m["Name"])
-	assert.Equal(t, 2, len(jobRepo.Find()))
+	jobs, _ := jobRepo.Find()
+	assert.Equal(t, 2, len(jobs))
 }

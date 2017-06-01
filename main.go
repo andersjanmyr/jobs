@@ -21,7 +21,7 @@ func main() {
 	log.SetOutput(os.Stdout)
 	var router = mux.NewRouter().StrictSlash(true)
 	loggedRouter := handlers.LoggingHandler(os.Stdout, slowMiddleware(router))
-	jobRepo := NewJobRepo([]*Job{NewJob("One"), NewJob("Two")})
+	jobRepo := NewMemJobRepo([]*Job{NewJob("One"), NewJob("Two")})
 	setupRouter(router.PathPrefix("/jobs"), NewJobController(jobRepo))
 
 	go func() {
@@ -64,10 +64,10 @@ type RestController interface {
 }
 
 type JobController struct {
-	repo *JobRepo
+	repo JobRepo
 }
 
-func NewJobController(repo *JobRepo) *JobController {
+func NewJobController(repo JobRepo) *JobController {
 	jc := JobController{
 		repo: repo,
 	}
@@ -75,7 +75,12 @@ func NewJobController(repo *JobRepo) *JobController {
 }
 
 func (c *JobController) Index(w http.ResponseWriter, r *http.Request) {
-	writeJson(w, c.repo.Find())
+	jobs, err := c.repo.Find()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	writeJson(w, jobs)
 }
 
 func writeJson(w http.ResponseWriter, data interface{}) {
@@ -107,7 +112,7 @@ func parseJob(reader io.ReadCloser) (*Job, error) {
 		return nil, fmt.Errorf("No body to parse")
 	}
 	decoder := json.NewDecoder(reader)
-	defer reader.Close()
+	defer reader.Close() // errcheck-ignore
 	var job Job
 	if err := decoder.Decode(&job); err != nil {
 		return nil, err
@@ -150,7 +155,11 @@ func (c *JobController) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	job.Slug = slug
-	j := c.repo.UpAdd(job)
+	j, err := c.repo.UpAdd(job)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	writeJson(w, j)
 }
 

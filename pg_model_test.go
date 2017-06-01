@@ -17,7 +17,7 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		panic(err)
 	}
-	defer db.Close()
+	defer db.Close() // errcheck-ignore
 
 	db.AutoMigrate(&Job{})
 	code := m.Run()
@@ -63,8 +63,8 @@ func TestPgJobsFindOne(t *testing.T) {
 	tx := db.Begin()
 	defer tx.Rollback()
 	jobRepo := NewPgJobRepo(tx)
-	jobRepo.Add(NewJob("Dingo"))
-	jobRepo.Add(NewJob("Sloth"))
+	_, _ = jobRepo.Add(NewJob("Dingo"))
+	_, _ = jobRepo.Add(NewJob("Sloth"))
 	job, err := jobRepo.FindOne("sloth")
 	assert.Nil(t, err)
 	assert.Equal(t, "Sloth", job.Name)
@@ -74,8 +74,8 @@ func TestPgJobsDelete(t *testing.T) {
 	tx := db.Begin()
 	defer tx.Rollback()
 	jobRepo := NewPgJobRepo(tx)
-	jobRepo.Add(NewJob("Dingo"))
-	jobRepo.Add(NewJob("Sloth"))
+	_, _ = jobRepo.Add(NewJob("Dingo"))
+	_, _ = jobRepo.Add(NewJob("Sloth"))
 	job, err := jobRepo.Delete("sloth")
 	assert.Nil(t, err)
 	assert.Equal(t, "Sloth", job.Name)

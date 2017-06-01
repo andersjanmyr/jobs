@@ -27,35 +27,52 @@ func (j *Job) update(job *Job) {
 	}
 }
 
-type JobRepo struct {
+type JobRepo interface {
+	Find() ([]*Job, error)
+	FindOne(slug string) (*Job, error)
+	Add(job *Job) (*Job, error)
+	Update(job *Job) (*Job, error)
+	UpAdd(job *Job) (*Job, error)
+	Delete(slug string) (*Job, error)
+}
+
+type MemJobRepo struct {
 	jobs []*Job
 }
 
-func NewJobRepo(jobs []*Job) *JobRepo {
-	return &JobRepo{
+func NewMemJobRepo(jobs []*Job) *MemJobRepo {
+	return &MemJobRepo{
 		jobs: jobs,
 	}
 }
 
-func (r *JobRepo) Find() []*Job {
-	return r.jobs
+func (r *MemJobRepo) Find() ([]*Job, error) {
+	return r.jobs, nil
 }
 
-func (r *JobRepo) FindOne(slug string) (*Job, int) {
-	for i, j := range r.jobs {
+func (r *MemJobRepo) FindOne(slug string) (*Job, error) {
+	for _, j := range r.jobs {
 		if j.Slug == slug {
-			return j, i
+			return j, nil
 		}
 	}
-	return nil, -1
+	return nil, fmt.Errorf("No job found with slug: %s", slug)
 }
 
-func (r *JobRepo) Add(job *Job) *Job {
+func (r *MemJobRepo) Add(job *Job) (*Job, error) {
 	r.jobs = append(r.jobs, job)
-	return job
+	return job, nil
 }
 
-func (r *JobRepo) Update(job *Job) (*Job, error) {
+func (r *MemJobRepo) index(slug string) int {
+	for i, j := range r.jobs {
+		if j.Slug == slug {
+			return i
+		}
+	}
+	return -1
+}
+func (r *MemJobRepo) Update(job *Job) (*Job, error) {
 	j, _ := r.FindOne(job.Slug)
 	if j == nil {
 		return nil, fmt.Errorf("Cannot find job with slug %s", job.Slug)
@@ -64,21 +81,22 @@ func (r *JobRepo) Update(job *Job) (*Job, error) {
 	return job, nil
 }
 
-func (r *JobRepo) UpAdd(job *Job) *Job {
+func (r *MemJobRepo) UpAdd(job *Job) (*Job, error) {
 	j, _ := r.FindOne(job.Slug)
 	if j == nil {
 		return r.Add(job)
 	} else {
 		j.update(job)
-		return j
+		return j, nil
 	}
 }
 
-func (r *JobRepo) Delete(slug string) (*Job, error) {
-	job, i := r.FindOne(slug)
-	if job == nil {
-		return nil, fmt.Errorf("Cannot find job with slug %s", job.Slug)
+func (r *MemJobRepo) Delete(slug string) (*Job, error) {
+	i := r.index(slug)
+	if i == -1 {
+		return nil, fmt.Errorf("Cannot find job with slug %s", slug)
 	}
+	job := r.jobs[i]
 	r.jobs = append(r.jobs[:i], r.jobs[i+1:]...)
 	return job, nil
 }

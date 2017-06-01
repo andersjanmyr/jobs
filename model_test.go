@@ -7,33 +7,35 @@ import (
 )
 
 func TestFind(t *testing.T) {
-	jobRepo := NewJobRepo([]*Job{NewJob("One"), NewJob("Two")})
-	assert.Equal(t, 2, len(jobRepo.Find()))
+	jobRepo := NewMemJobRepo([]*Job{NewJob("One"), NewJob("Two")})
+	jobs, _ := jobRepo.Find()
+	assert.Equal(t, 2, len(jobs))
 }
 
 func TestFindOne(t *testing.T) {
-	jobRepo := NewJobRepo([]*Job{NewJob("One"), NewJob("Two")})
-	job, i := jobRepo.FindOne("one")
+	jobRepo := NewMemJobRepo([]*Job{NewJob("One"), NewJob("Two")})
+	job, err := jobRepo.FindOne("one")
+	assert.Nil(t, err)
 	assert.Equal(t, NewJob("One"), job)
-	assert.Equal(t, i, 0)
 }
 
 func TestFindOneMissing(t *testing.T) {
-	jobRepo := NewJobRepo([]*Job{NewJob("One"), NewJob("Two")})
-	job, i := jobRepo.FindOne("missing")
+	jobRepo := NewMemJobRepo([]*Job{NewJob("One"), NewJob("Two")})
+	job, err := jobRepo.FindOne("missing")
 	assert.Nil(t, job)
-	assert.Equal(t, i, -1)
+	assert.EqualError(t, err, "No job found with slug: missing")
 }
 
 func TestAdd(t *testing.T) {
-	jobRepo := NewJobRepo([]*Job{NewJob("One"), NewJob("Two")})
+	jobRepo := NewMemJobRepo([]*Job{NewJob("One"), NewJob("Two")})
 	job := NewJob("One")
-	jobRepo.Add(job)
-	assert.Equal(t, 3, len(jobRepo.Find()))
+	_, _ = jobRepo.Add(job)
+	jobs, _ := jobRepo.Find()
+	assert.Equal(t, 3, len(jobs))
 }
 
 func TestUpdate(t *testing.T) {
-	jobRepo := NewJobRepo([]*Job{NewJob("One"), NewJob("Two")})
+	jobRepo := NewMemJobRepo([]*Job{NewJob("One"), NewJob("Two")})
 	job := NewJob("One")
 	job.Name = "Uno"
 	updatedJob, _ := jobRepo.Update(job)
@@ -41,7 +43,7 @@ func TestUpdate(t *testing.T) {
 }
 
 func TestUpdateFail(t *testing.T) {
-	jobRepo := NewJobRepo([]*Job{NewJob("One"), NewJob("Two")})
+	jobRepo := NewMemJobRepo([]*Job{NewJob("One"), NewJob("Two")})
 	job := NewJob("Missing")
 	job.Name = "Uno"
 	j, err := jobRepo.Update(job)
