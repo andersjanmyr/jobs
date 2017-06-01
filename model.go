@@ -28,6 +28,10 @@ func (j *Job) update(job *Job) {
 	if job.Name != "" {
 		j.Name = job.Name
 	}
+	if job.Slug != "" {
+		j.Slug = job.Slug
+	}
+	job.UpdatedAt = time.Now()
 }
 
 type JobRepo interface {

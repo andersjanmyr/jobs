@@ -40,10 +40,12 @@ func TestAdd(t *testing.T) {
 
 func TestUpdate(t *testing.T) {
 	jobRepo := NewMemJobRepo([]*Job{NewJob("One"), NewJob("Two")})
-	job := NewJob("One")
+	job, _ := jobRepo.FindOne("one")
 	job.Name = "Uno"
+	updatedAt := job.UpdatedAt
 	updatedJob, _ := jobRepo.Update(job)
 	assert.Equal(t, "Uno", updatedJob.Name)
+	assert.NotEqual(t, updatedAt, updatedJob.UpdatedAt)
 }
 
 func TestUpdateFail(t *testing.T) {
