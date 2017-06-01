@@ -1,4 +1,4 @@
-package main
+package models
 
 import (
 	"fmt"
@@ -17,10 +17,10 @@ type Job struct {
 var jobIndex uint = 0
 
 func NewJob(name string) *Job {
-	return &Job{Name: name, Slug: slug(name)}
+	return &Job{Name: name, Slug: Slug(name)}
 }
 
-func slug(name string) string {
+func Slug(name string) string {
 	return strings.ToLower(name)
 }
 

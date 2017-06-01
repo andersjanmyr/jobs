@@ -11,6 +11,7 @@ import (
 
 	_ "net/http/pprof"
 
+	"github.com/andersjanmyr/jobs/models"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
@@ -27,9 +28,9 @@ func main() {
 		panic(err)
 	}
 	defer db.Close()
-	jobRepo := NewPgJobRepo(db)
-	_, _ = jobRepo.Add(NewJob("One"))
-	_, _ = jobRepo.Add(NewJob("Two"))
+	jobRepo := models.NewPgJobRepo(db)
+	_, _ = jobRepo.Add(models.NewJob("One"))
+	_, _ = jobRepo.Add(models.NewJob("Two"))
 	setupRouter(router.PathPrefix("/jobs"), NewJobController(jobRepo))
 
 	go func() {
@@ -72,10 +73,10 @@ type RestController interface {
 }
 
 type JobController struct {
-	repo JobRepo
+	repo models.JobRepo
 }
 
-func NewJobController(repo JobRepo) *JobController {
+func NewJobController(repo models.JobRepo) *JobController {
 	jc := JobController{
 		repo: repo,
 	}
@@ -115,18 +116,18 @@ func (c *JobController) Create(w http.ResponseWriter, r *http.Request) {
 	writeJson(w, job)
 }
 
-func parseJob(reader io.ReadCloser) (*Job, error) {
+func parseJob(reader io.ReadCloser) (*models.Job, error) {
 	if reader == nil {
 		return nil, fmt.Errorf("No body to parse")
 	}
 	decoder := json.NewDecoder(reader)
 	defer reader.Close() // errcheck-ignore
-	var job Job
+	var job models.Job
 	if err := decoder.Decode(&job); err != nil {
 		return nil, err
 	}
 	if job.Slug == "" {
-		job.Slug = slug(job.Name)
+		job.Slug = models.Slug(job.Name)
 	}
 	return &job, nil
 }

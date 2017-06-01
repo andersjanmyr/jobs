@@ -1,4 +1,4 @@
-package main
+package models
 
 import (
 	"os"
@@ -20,6 +20,7 @@ func TestMain(m *testing.M) {
 	defer db.Close() // errcheck-ignore
 
 	db.AutoMigrate(&Job{})
+	db.Delete(&Job{})
 	code := m.Run()
 
 	os.Exit(code)

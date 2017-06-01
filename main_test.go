@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/andersjanmyr/jobs/models"
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
 )
@@ -32,7 +33,7 @@ func TestJobsIndex(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	router := mux.NewRouter()
-	jobRepo := NewMemJobRepo([]*Job{NewJob("One"), NewJob("Two")})
+	jobRepo := models.NewMemJobRepo([]*models.Job{models.NewJob("One"), models.NewJob("Two")})
 	controller := NewJobController(jobRepo)
 	setupRouter(router.PathPrefix("/"), controller)
 	router.ServeHTTP(w, req)
@@ -54,7 +55,7 @@ func TestJobsCreate(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	router := mux.NewRouter()
-	controller := NewJobController(NewMemJobRepo([]*Job{}))
+	controller := NewJobController(models.NewMemJobRepo([]*models.Job{}))
 	setupRouter(router.PathPrefix("/"), controller)
 	router.ServeHTTP(w, req)
 
@@ -72,7 +73,8 @@ func TestJobsShow(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	router := mux.NewRouter()
-	jobRepo := NewMemJobRepo([]*Job{NewJob("Zero"), NewJob("One"), NewJob("Two")})
+	jobRepo := models.NewMemJobRepo([]*models.Job{models.NewJob("Zero"),
+		models.NewJob("One"), models.NewJob("Two")})
 	controller := NewJobController(jobRepo)
 	setupRouter(router.PathPrefix("/"), controller)
 
@@ -96,7 +98,7 @@ func TestJobsUpdate(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	router := mux.NewRouter()
-	jobRepo := NewMemJobRepo([]*Job{NewJob("One"), NewJob("Two")})
+	jobRepo := models.NewMemJobRepo([]*Job{models.NewJob("One"), models.NewJob("Two")})
 	controller := NewJobController(jobRepo)
 	setupRouter(router.PathPrefix("/"), controller)
 
