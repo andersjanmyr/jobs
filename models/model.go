@@ -1,7 +1,9 @@
 package models
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
 	"strings"
 	"time"
 
@@ -17,10 +19,10 @@ type Job struct {
 var jobIndex uint = 0
 
 func NewJob(name string) *Job {
-	return &Job{Name: name, Slug: Slug(name)}
+	return &Job{Name: name, Slug: slug(name)}
 }
 
-func Slug(name string) string {
+func slug(name string) string {
 	return strings.ToLower(name)
 }
 
@@ -32,6 +34,22 @@ func (j *Job) update(job *Job) {
 		j.Slug = job.Slug
 	}
 	job.UpdatedAt = time.Now()
+}
+
+func ParseJob(reader io.ReadCloser) (*Job, error) {
+	if reader == nil {
+		return nil, fmt.Errorf("No body to parse")
+	}
+	decoder := json.NewDecoder(reader)
+	defer reader.Close() // errcheck-ignore
+	var job Job
+	if err := decoder.Decode(&job); err != nil {
+		return nil, err
+	}
+	if job.Slug == "" {
+		job.Slug = slug(job.Name)
+	}
+	return &job, nil
 }
 
 type JobRepo interface {

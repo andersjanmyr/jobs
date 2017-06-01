@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"os"
@@ -107,29 +106,13 @@ func writeJson(w http.ResponseWriter, data interface{}) {
 }
 
 func (c *JobController) Create(w http.ResponseWriter, r *http.Request) {
-	job, err := parseJob(r.Body)
+	job, err := models.ParseJob(r.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	w.WriteHeader(http.StatusCreated)
 	writeJson(w, job)
-}
-
-func parseJob(reader io.ReadCloser) (*models.Job, error) {
-	if reader == nil {
-		return nil, fmt.Errorf("No body to parse")
-	}
-	decoder := json.NewDecoder(reader)
-	defer reader.Close() // errcheck-ignore
-	var job models.Job
-	if err := decoder.Decode(&job); err != nil {
-		return nil, err
-	}
-	if job.Slug == "" {
-		job.Slug = models.Slug(job.Name)
-	}
-	return &job, nil
 }
 
 func (c *JobController) Show(w http.ResponseWriter, r *http.Request) {
@@ -158,7 +141,7 @@ func (c *JobController) Update(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	job, err := parseJob(r.Body)
+	job, err := models.ParseJob(r.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

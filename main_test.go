@@ -98,7 +98,7 @@ func TestJobsUpdate(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	router := mux.NewRouter()
-	jobRepo := models.NewMemJobRepo([]*Job{models.NewJob("One"), models.NewJob("Two")})
+	jobRepo := models.NewMemJobRepo([]*models.Job{models.NewJob("One"), models.NewJob("Two")})
 	controller := NewJobController(jobRepo)
 	setupRouter(router.PathPrefix("/"), controller)
 
@@ -117,7 +117,7 @@ func TestJobsDelete(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	router := mux.NewRouter()
-	jobRepo := NewMemJobRepo([]*Job{NewJob("Zero"), NewJob("One"), NewJob("Two")})
+	jobRepo := models.NewMemJobRepo([]*models.Job{models.NewJob("Zero"), models.NewJob("One"), models.NewJob("Two")})
 	controller := NewJobController(jobRepo)
 	setupRouter(router.PathPrefix("/"), controller)
 
