@@ -13,6 +13,7 @@ import (
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+	"github.com/jinzhu/gorm"
 )
 
 func main() {
@@ -21,7 +22,14 @@ func main() {
 	log.SetOutput(os.Stdout)
 	var router = mux.NewRouter().StrictSlash(true)
 	loggedRouter := handlers.LoggingHandler(os.Stdout, slowMiddleware(router))
-	jobRepo := NewMemJobRepo([]*Job{NewJob("One"), NewJob("Two")})
+	db, err := gorm.Open("postgres", "host=localhost user=jobs dbname=jobs sslmode=disable password=jobs")
+	if err != nil {
+		panic(err)
+	}
+	defer db.Close()
+	jobRepo := NewPgJobRepo(db)
+	_, _ = jobRepo.Add(NewJob("One"))
+	_, _ = jobRepo.Add(NewJob("Two"))
 	setupRouter(router.PathPrefix("/jobs"), NewJobController(jobRepo))
 
 	go func() {
