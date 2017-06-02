@@ -52,6 +52,19 @@ func ParseJob(reader io.ReadCloser) (*Job, error) {
 	return &job, nil
 }
 
+func ParseJobs(reader io.ReadCloser) ([]Job, error) {
+	if reader == nil {
+		return nil, fmt.Errorf("No body to parse")
+	}
+	decoder := json.NewDecoder(reader)
+	defer reader.Close()
+	var jobs []Job
+	if err := decoder.Decode(&jobs); err != nil {
+		return nil, err
+	}
+	return jobs, nil
+}
+
 type JobRepo interface {
 	Find() ([]*Job, error)
 	FindOne(slug string) (*Job, error)

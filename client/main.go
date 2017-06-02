@@ -2,10 +2,11 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 
+	"github.com/andersjanmyr/jobs/models"
 	"github.com/pkg/errors"
 )
 
@@ -13,7 +14,7 @@ type JobClient struct {
 	baseUrl string
 }
 
-func (c *JobClient) request(method, path string) ([]byte, error) {
+func (c *JobClient) request(method, path string) (io.ReadCloser, error) {
 	url := fmt.Sprintf("%s/%s", c.baseUrl, strings.TrimLeft(path, "/"))
 	req, err := http.NewRequest(method, url, nil)
 	if err != nil {
@@ -23,20 +24,16 @@ func (c *JobClient) request(method, path string) ([]byte, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, fmt.Sprintf("Request failed %s", url))
 	}
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, errors.Wrap(err, fmt.Sprintf("Request body read failed %s", url))
-	}
 
-	return body, nil
+	return resp.Body, nil
 }
-func (c *JobClient) Index() (string, error) {
-	data, err := c.request(http.MethodGet, "/")
+func (c *JobClient) Index() ([]models.Job, error) {
+	rc, err := c.request(http.MethodGet, "/")
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	return string(data), nil
+	jobs, err := models.ParseJobs(rc)
+	return jobs, err
 }
 
 func (c *JobClient) Create()  {}
@@ -50,6 +47,6 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(data)
+	fmt.Printf("%#v\n", data)
 
 }
