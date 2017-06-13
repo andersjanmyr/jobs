@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/andersjanmyr/jobs/controllers"
 	"github.com/andersjanmyr/jobs/models"
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
@@ -34,7 +35,7 @@ func TestJobsIndex(t *testing.T) {
 	w := httptest.NewRecorder()
 	router := mux.NewRouter()
 	jobRepo := models.NewMemJobRepo([]*models.Job{models.NewJob("One"), models.NewJob("Two")})
-	controller := NewJobController(jobRepo)
+	controller := controllers.NewJobController(jobRepo)
 	setupRouter(router.PathPrefix("/"), controller)
 	router.ServeHTTP(w, req)
 
@@ -55,7 +56,7 @@ func TestJobsCreate(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	router := mux.NewRouter()
-	controller := NewJobController(models.NewMemJobRepo([]*models.Job{}))
+	controller := controllers.NewJobController(models.NewMemJobRepo([]*models.Job{}))
 	setupRouter(router.PathPrefix("/"), controller)
 	router.ServeHTTP(w, req)
 
@@ -75,7 +76,7 @@ func TestJobsShow(t *testing.T) {
 	router := mux.NewRouter()
 	jobRepo := models.NewMemJobRepo([]*models.Job{models.NewJob("Zero"),
 		models.NewJob("One"), models.NewJob("Two")})
-	controller := NewJobController(jobRepo)
+	controller := controllers.NewJobController(jobRepo)
 	setupRouter(router.PathPrefix("/"), controller)
 
 	router.ServeHTTP(w, req)
@@ -99,7 +100,7 @@ func TestJobsUpdate(t *testing.T) {
 	w := httptest.NewRecorder()
 	router := mux.NewRouter()
 	jobRepo := models.NewMemJobRepo([]*models.Job{models.NewJob("One"), models.NewJob("Two")})
-	controller := NewJobController(jobRepo)
+	controller := controllers.NewJobController(jobRepo)
 	setupRouter(router.PathPrefix("/"), controller)
 
 	router.ServeHTTP(w, req)
@@ -118,7 +119,7 @@ func TestJobsDelete(t *testing.T) {
 	w := httptest.NewRecorder()
 	router := mux.NewRouter()
 	jobRepo := models.NewMemJobRepo([]*models.Job{models.NewJob("Zero"), models.NewJob("One"), models.NewJob("Two")})
-	controller := NewJobController(jobRepo)
+	controller := controllers.NewJobController(jobRepo)
 	setupRouter(router.PathPrefix("/"), controller)
 
 	router.ServeHTTP(w, req)
