@@ -13,10 +13,17 @@ import (
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
+	"github.com/mitchellh/panicwrap"
 	log "github.com/sirupsen/logrus"
 )
 
 func main() {
+	_, err := panicwrap.BasicWrap(panicHandler)
+	if err != nil {
+		// Something went wrong setting up the panic wrapper. Unlikely,
+		// but possible.
+		panic(err)
+	}
 	port := 5555
 
 	log.SetOutput(os.Stdout)
@@ -40,6 +47,13 @@ func main() {
 	log.Fatal(http.ListenAndServe(":"+strconv.Itoa(port), loggedRouter))
 }
 
+func panicHandler(output string) {
+	// output contains the full output (including stack traces) of the
+	// panic. Put it in a file or something.
+	log.Panic(output)
+	os.Exit(1)
+}
+
 func slowMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		for i := 0; i < 10000; i++ {
@@ -48,4 +62,3 @@ func slowMiddleware(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 	})
 }
-
